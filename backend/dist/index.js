@@ -13,42 +13,71 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const config_1 = __importDefault(require("./db/config"));
-const model_1 = require("./model");
 const web3_js_1 = require("@solana/web3.js");
+const bs58_1 = __importDefault(require("bs58"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
-(0, config_1.default)();
-app.post('/api/v1/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const username = req.body.username;
-    const password = req.body.password;
-    if (!username || !password) {
-        return;
-    }
-    const keypair = new web3_js_1.Keypair();
-    const user = yield model_1.userModel.create({
-        username,
-        password,
-        publickey: keypair.publicKey.toString(),
-        privatekey: keypair.secretKey.toString()
-    });
-    res.json({
-        message: keypair.publicKey.toString()
-    });
+app.use((0, cors_1.default)({
+    origin: ['http://localhost:5173'], // Your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
 }));
-app.post('/api/v1/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const JWT = 'Secre5';
+const connection = new web3_js_1.Connection('https://api.devnet.solana.com', "confirmed");
+// app.post('/api/v1/signup',async (req:Request,res:Response)=>{
+//     const username=req.body.username;
+//     const password=req.body.password;
+//     if(!username || !password){
+//         return 
+//     }
+//     const keypair= new Keypair()
+//     const user=await userModel.create({
+//         username,
+//         password,
+//         publickey:keypair.publicKey.toString(),
+//         privatekey:keypair.secretKey.toString()
+//     })
+//    res.json({
+//     message:keypair.publicKey.toString()
+//    }) 
+// })
+// app.post('/api/v1/signin',async (req:Request,res:Response)=>{
+//     const username=req.body.username;
+//     const password=req.body.password;
+//     if(!username || !password){
+//         return 
+//     }
+//     const user=await userModel.findOne({
+//         username:username,
+//         password:password
+//     })
+//     if(user){
+//         const token=jwt.sign({
+//             id:user
+//         },'secr35')
+//     }
+//     res.json({
+//      message:"signin"
+//     })const txn=serializedTxn.
+//  })
+app.post('/api/v1/txn/sign', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { message, pub } = req.body;
+    const tx = web3_js_1.Transaction.from(Buffer.from(message.data, 'base64'));
+    const signer = web3_js_1.Keypair.fromSecretKey(bs58_1.default.decode(process.env.PRI));
+    tx.sign(signer);
+    const signature = yield connection.sendTransaction(tx, [signer]);
     res.json({
-        message: "signin"
+        message: signature
     });
 }));
 app.post('/api/v1/txn', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const txn = req.body.message;
+    console.log(txn);
     res.json({
-        message: "signup"
-    });
-}));
-app.post('/api/v1/txn/sign', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    res.json({
-        message: "signup"
+        message: txn
     });
 }));
 app.listen(3000, () => {
